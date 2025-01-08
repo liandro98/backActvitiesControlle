@@ -12,6 +12,7 @@ import rolUserRouter from './routes/rolUserRouter';
 import loginRoutes from './routes/loginRoutes';
 import editaractRouter from './routes/editaractRouter';
 import facebookAuthRoutes from './routes/loginFacebookRoutes';
+import noticiasRoutes from './routes/noticiasRoutes';
 import * as crypto from 'crypto';
 class Server{
     public app : Application
@@ -42,6 +43,7 @@ class Server{
         this.app.use('/api/login',loginRoutes)
         this.app.use('/api/login/facebook', facebookAuthRoutes)
         this.app.use('/api/editact',editaractRouter)
+        this.app.use('/api/noticias', noticiasRoutes);
 
         // Endpoint para eliminar los datos de usuario (facebook)
         this.app.post('/delete-user-data', this.handleDeleteUserData);
@@ -78,11 +80,11 @@ class Server{
 
         console.log(`Eliminar datos de usuario con ID: ${userId}`);
 
-        // Lógica para eliminar datos de usuario aquí (base de datos, etc.)
+    
 
         res.json({
-            url: 'https://mi-app.com/delete-confirmation', // URL para confirmar la eliminación.
-            confirmation_code: '123456' // Código único para la solicitud.
+            url: 'https://mi-app.com/delete-confirmation',
+            confirmation_code: '123456' 
         });
     }
 
