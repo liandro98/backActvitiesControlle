@@ -26,15 +26,41 @@ class ActividadesController {
     }
     create(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield database_1.default.query('INSERT INTO actividades set ? ', [req.body]);
-            res.json({ message: 'Atividad Guardada' });
+            const actividad = req.body;
+            // Calcular días y costo
+            const fechaInicio = new Date(actividad.Fecha_de_inicio);
+            const fechaFin = new Date(actividad.Fecha_de_fin);
+            const dias = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const costo = dias * 10; // El costo por dia es de 10 pesos
+            // Calcular fechaReunion (2 días antes de Fecha_de_fin)
+            let fechaReunion = new Date(fechaFin);
+            fechaReunion.setDate(fechaReunion.getDate() - 1);
+            // Validar que no sea domingo
+            while (fechaReunion.getDay() === 0) { // 0 es domingo
+                fechaReunion.setDate(fechaReunion.getDate() - 1);
+            }
+            // Formatear fechaReunion como string
+            const fechaReunionFormatted = fechaReunion.toISOString().split('T')[0];
+            // Insertar con costo calculado y fechaReunion
+            actividad.costo = costo;
+            actividad.fechaReunion = fechaReunionFormatted;
+            yield database_1.default.query('INSERT INTO actividades SET ?', [actividad]);
+            res.json({ message: 'Actividad Guardada', costo, fechaReunion: actividad.fechaReunion });
         });
     }
     update(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             const { id } = req.params;
-            yield database_1.default.query('UPDATE actividades set ?  WHERE idActividad = ?', [req.body, id]);
-            res.json({ message: 'La actividad se actualizo' });
+            const actividad = req.body;
+            // Calcular días y costo si se actualizan las fechas
+            if (actividad.Fecha_de_inicio && actividad.Fecha_de_fin) {
+                const fechaInicio = new Date(actividad.Fecha_de_inicio);
+                const fechaFin = new Date(actividad.Fecha_de_fin);
+                const dias = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                actividad.costo = dias * 10;
+            }
+            yield database_1.default.query('UPDATE actividades SET ? WHERE idActividad = ?', [actividad, id]);
+            res.json({ message: 'La actividad se actualizó', actividad });
         });
     }
     delete(req, res) {
@@ -42,6 +68,28 @@ class ActividadesController {
             const { id } = req.params;
             yield database_1.default.query('UPDATE actividades set Estatus = "CANCELADA" WHERE idActividad = ?', [id]);
             res.json({ message: 'La actividad se eliminó' });
+        });
+    }
+    getLinkForToday(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const today = new Date().toISOString().split('T')[0]; // Obtener la fecha actual en formato YYYY-MM-DD
+            try {
+                const actividades = yield database_1.default.query('SELECT Nombre_Actividad FROM actividades WHERE fechaReunion = ?', [today]);
+                if (actividades.length === 0) {
+                    res.json({ message: 'No hay actividades con fecha de reunión para hoy.' });
+                    return;
+                }
+                // Generar enlaces
+                const links = actividades.map((actividad) => ({
+                    nombreActividad: actividad.Nombre_Actividad,
+                    enlace: `https://meet.jit.si/${encodeURIComponent(actividad.Nombre_Actividad)}`
+                }));
+                res.json(links);
+            }
+            catch (error) {
+                console.error(error);
+                res.status(500).json({ message: 'Error al obtener las actividades.' });
+            }
         });
     }
 }
