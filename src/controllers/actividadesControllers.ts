@@ -60,31 +60,33 @@ import pool from '../database'
       res.json({ message: 'La actividad se eliminó' });
     }
 
-    public async getLinkForToday(req: Request, res: Response): Promise<void> {
-      const today = new Date().toISOString().split('T')[0]; // Obtener la fecha actual en formato YYYY-MM-DD
+    public async getMeetingLink(req: Request, res: Response): Promise<void> {
       try {
-        const actividades = await pool.query(
-          'SELECT Nombre_Actividad FROM actividades WHERE fechaReunion = ?',
-          [today]
+        const { idUsuario } = req.params;
+    
+        // Obtener la actividad con fecha de reunión igual al día actual, donde el usuario es encargado o participante
+        const today = new Date().toISOString().split('T')[0];
+        const actividad = await pool.query(
+          `SELECT a.Nombre_Actividad, a.fechaReunion, u_encargado.idUsuario AS idEncargado, u_participante.idUsuario AS idParticipante 
+          FROM actividades a
+          LEFT JOIN usuarios u_encargado ON a.Encargado = u_encargado.idUsuario
+          LEFT JOIN usuarios u_participante ON a.Participante = u_participante.idUsuario
+          WHERE a.fechaReunion = ? AND (u_encargado.idUsuario = ? OR u_participante.idUsuario = ?)`,
+          [today, idUsuario, idUsuario]
         );
-  
-        if (actividades.length === 0) {
-          res.json({ message: 'No hay actividades con fecha de reunión para hoy.' });
-          return;
+    
+        if (actividad.length > 0) {
+          const enlace = `https://meet.jit.si/${actividad[0].Nombre_Actividad}`;
+          res.json({ enlace });
+        } else {
+          res.status(404).json({ message: 'No tienes actividades programadas para hoy.' });
         }
-  
-        // Generar enlaces
-        const links = actividades.map((actividad: any) => ({
-          nombreActividad: actividad.Nombre_Actividad,
-          enlace: `https://meet.jit.si/${encodeURIComponent(actividad.Nombre_Actividad)}`
-        }));
-  
-        res.json(links);
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener las actividades.' });
+        res.status(500).json({ message: 'Error al obtener el enlace de reunión' });
       }
     }
+    
   }
  
  export const actividadesController = new ActividadesController();

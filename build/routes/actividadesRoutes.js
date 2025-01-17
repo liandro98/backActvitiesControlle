@@ -12,7 +12,7 @@ class ActividadesRoutes {
         this.router.post('/', actividadesControllers_1.actividadesController.create);
         this.router.put('/:id', actividadesControllers_1.actividadesController.update);
         this.router.delete('/:id', actividadesControllers_1.actividadesController.delete);
-        this.router.get('/reunion/today', actividadesControllers_1.actividadesController.getLinkForToday);
+        this.router.get('/link/:idUsuario', actividadesControllers_1.actividadesController.getMeetingLink);
     }
 }
 const actividadesRoutes = new ActividadesRoutes();
