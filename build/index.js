@@ -32,6 +32,15 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -51,12 +60,19 @@ const loginRoutes_1 = __importDefault(require("./routes/loginRoutes"));
 const editaractRouter_1 = __importDefault(require("./routes/editaractRouter"));
 const loginFacebookRoutes_1 = __importDefault(require("./routes/loginFacebookRoutes"));
 const noticiasRoutes_1 = __importDefault(require("./routes/noticiasRoutes"));
+const twitter_api_v2_1 = require("twitter-api-v2");
 const crypto = __importStar(require("crypto"));
 class Server {
     constructor() {
         this.app = (0, express_1.default)();
         this.config();
         this.routes();
+        this.twitterClient = new twitter_api_v2_1.TwitterApi({
+            appKey: 'J4EiM0O758AUc8a1uSxLy4xj7',
+            appSecret: '3YslN57mH2Njzm4yv8j1x2u0nAL5KPT5OMamyHJheA47VvhDNY',
+            accessToken: '1880213530512879620-BpGKV6eDHgFjAxgmdCAXGRxFb3aAcF',
+            accessSecret: 'KJPN1rNrdcn7V375ZXXU9p9IZY66QYrwdO8DXbjsF6WXw',
+        });
     }
     config() {
         this.app.set('port', process.env.PORT || 3000);
@@ -78,8 +94,28 @@ class Server {
         this.app.use('/api/login/facebook', loginFacebookRoutes_1.default);
         this.app.use('/api/editact', editaractRouter_1.default);
         this.app.use('/api/noticias', noticiasRoutes_1.default);
+        this.app.use('/api/twitter', this.twitterRoutes());
         // Endpoint para eliminar los datos de usuario (facebook)
         this.app.post('/delete-user-data', this.handleDeleteUserData);
+    }
+    // Ruta para interactuar con Twitter
+    twitterRoutes() {
+        const router = express_1.default.Router();
+        router.post('/send-tweet', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const { tweet } = req.body; // Texto del tweet enviado desde el cliente
+            if (!tweet || typeof tweet !== 'string') {
+                return res.status(400).json({ message: 'El tweet es requerido y debe ser una cadena de texto.' });
+            }
+            try {
+                const tweetResponse = yield this.twitterClient.v2.tweet(tweet);
+                res.json({ message: 'Tweet enviado con éxito.', tweetResponse });
+            }
+            catch (error) {
+                console.error('Error al enviar el tweet:', error);
+                res.status(500).json({ message: 'Error al enviar el tweet.', error });
+            }
+        }));
+        return router;
     }
     // Manejo de solicitudes para eliminar los datos
     handleDeleteUserData(req, res) {
